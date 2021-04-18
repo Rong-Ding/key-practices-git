@@ -1,43 +1,75 @@
+#----------------------Script Header----------------------------------####
+# Date:           10/04/2020
+# Author:         Rong Ding
+# Filename:       session4.R
+# Description:    Code to try out LMER models to analyse how inter-stimuli 
+#                 intervals (ISIs) and semantic relationships between words
+#                 influence response times (RTs) to target words in a
+#                 semantic priming experiment. 
+#---------------------------------------------------------------------###
+
+#----------------------Change Log------------------------------------####
+# Date:           18/04/2020
+# Change by:      Rong Ding
+# Filename:       session4.R
+# Change:         Adding script headers to make the code more comprehensible
+#---------------------------------------------------------------------###
+
+#----------------------Library Declarations--------------------------####
+
 library(tidyverse)
 library(ggpubr)
 library(rstatix)
 library(lme4)
 library(arm)
 
-setwd('C:/Users/lenovo/Desktop/PhD/course regis/Comp Psycholing')
-data <- read.csv(file = 'data_finalised_naming.csv')
+# Download a package if it's not installed yet
+if (!require(package, character.only=T, quietly=T)) {
+  install.packages(package)
+  library(package, character.only = T)
+}
+#---------------------------------------------------------------------###
+
+#----------------------Parameters------------------------------------####
+
+# alter the directory and the datafile name here
+directory = 'C:/Users/lenovo/Desktop/PhD/course regis/Comp Psycholing'
+filename = 'data_finalised_naming.csv'
+
+#---------------------------------------------------------------------###
+
+
+#----------------------Data Prep-------------------------------------####
+
+setwd(directory)
+data <- read.csv(file = filename)
+
+# double-check data format
 head(data)
 
-# non-multilevel ones - fixed effects?
-result <-  lm(meanRT ~ isi + condition + isi:condition, data = data)
-summary(result)
+# mark categorical variables
+data$isi=as.factor(data$isi)
 
-# intercept model
-result2 <- glm(meanRT ~ isi + condition + isi:condition, data = data)
-display(result2)
+#---------------------------------------------------------------------###
 
-# with random intercepts
-result3 <- lmer(meanRT ~ isi + condition + isi:condition + (1|target) 
-              + (1|prime),
-              data = data)
-summary(result3)
-display(result3)
+#----------------------Model Implementation--------------------------####
 
-# with random intercepts but also random slopes
+# basic regression model without random structure
+result_basic <-  lm(meanRT ~ isi + condition + isi:condition, data = data)
+summary(result1)
 
-data$isi=as.factor(data$isi) # mark isi as categorical
+# LMER with random intercepts only, to control for variance of stimulus 
+# word identity
+result_intrcpt <- lmer(meanRT ~ isi + condition + isi:condition # predictor vars 
+                       + (1|target) + (1|prime), # random structure
+                      data = data)
+summary(result_intrcpt)
 
-results_RT <- lmerTest::lmer(meanRT ~ isi*condition 
-                + (1 + isi | target) + (1 | prime), # random structure: condition highly correlated w/ target, r = .99 ??
+
+# LMER model with random intercepts but also random slopes, plus stats testing
+results_final <- lmerTest::lmer(meanRT ~ isi*condition 
+                + (1 + isi | target) + (1 | prime),
                 data = data)
-summary(results_RT)
+summary(results_final)
 
-
-# might need to choose one of the ISI (50/1050 have identical cosine vals)
-results_cos <- lmerTest::lmer(cosine ~ condition # isi doesn't matter in the case of cosine
-                          + (1 + condition | target) + (1 | prime), # prime/prime_un highly correlated
-                          data = data)
-summary(results_cos)
-
-# correlate RT w/ cosine
-
+#---------------------------------------------------------------------###
